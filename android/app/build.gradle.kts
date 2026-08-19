@@ -35,10 +35,37 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            ndk {
+                debugSymbolLevel = "NONE"
+            }
+        }
+    }
+
+    packaging {
+        jniLibs {
+            pickFirsts += listOf("lib/**/libsqlite3.so")
         }
     }
 }
 
 flutter {
     source = "../.."
+}
+
+// Flutter CLI expects APKs under ../build/app/outputs/flutter-apk (project root).
+val flutterApkOutputDir = rootProject.layout.projectDirectory.dir("../build/app/outputs/flutter-apk")
+
+listOf("assembleDebug", "assembleRelease").forEach { taskName ->
+    tasks.matching { it.name == taskName }.configureEach {
+        doLast {
+            val isRelease = taskName.contains("Release")
+            val apkFileName = if (isRelease) "app-release.apk" else "app-debug.apk"
+            val sourceApk = layout.buildDirectory.file("outputs/flutter-apk/$apkFileName").get().asFile
+            if (sourceApk.exists()) {
+                val destDir = flutterApkOutputDir.asFile
+                destDir.mkdirs()
+                sourceApk.copyTo(destDir.resolve(apkFileName), overwrite = true)
+            }
+        }
+    }
 }
