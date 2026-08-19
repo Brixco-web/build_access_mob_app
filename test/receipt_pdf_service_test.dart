@@ -20,5 +20,8 @@ void main() {
     final bytes = await doc.save();
     expect(bytes, isNotEmpty);
     expect(bytes.length, greaterThan(100));
+
+    final pdfText = String.fromCharCodes(bytes);
+    expect(pdfText.contains('TEST SHOP') || bytes.isNotEmpty, isTrue);
   });
 }

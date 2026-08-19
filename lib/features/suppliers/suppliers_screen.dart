@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/database/app_database.dart';
 import '../../core/providers/services_provider.dart';
 import '../../shared/widgets/apex_card.dart';
 import '../../shared/widgets/loading_shimmer.dart';
@@ -125,7 +126,21 @@ class SupplierDetailScreen extends ConsumerWidget {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(s.name, style: Theme.of(context).textTheme.titleLarge),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(s.name, style: Theme.of(context).textTheme.titleLarge),
+                ),
+                IconButton(
+                  icon: const Icon(LucideIcons.pencil, size: 18),
+                  onPressed: () => _editSupplier(context, ref, s),
+                ),
+                IconButton(
+                  icon: const Icon(LucideIcons.trash2, size: 18, color: AppColors.danger),
+                  onPressed: () => _deleteSupplier(context, ref, s),
+                ),
+              ],
+            ),
             if (s.contactPerson != null) Text(s.contactPerson!),
             if (s.phone != null) Text(s.phone!),
             const SizedBox(height: 12),
@@ -194,5 +209,57 @@ class SupplierDetailScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _editSupplier(BuildContext context, WidgetRef ref, Supplier s) async {
+    final nameCtrl = TextEditingController(text: s.name);
+    final contactCtrl = TextEditingController(text: s.contactPerson ?? '');
+    final phoneCtrl = TextEditingController(text: s.phone ?? '');
+    await showApexModal(
+      context: context,
+      title: 'Edit Supplier',
+      child: Column(
+        children: [
+          TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
+          TextField(controller: contactCtrl, decoration: const InputDecoration(labelText: 'Contact person')),
+          TextField(controller: phoneCtrl, decoration: const InputDecoration(labelText: 'Phone')),
+          FilledButton(
+            onPressed: () async {
+              await ref.read(supplierServiceProvider).updateSupplier(
+                    id: s.id,
+                    name: nameCtrl.text.trim(),
+                    contactPerson: contactCtrl.text.isEmpty ? null : contactCtrl.text,
+                    phone: phoneCtrl.text.isEmpty ? null : phoneCtrl.text,
+                  );
+              ref.invalidate(suppliersProvider);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteSupplier(BuildContext context, WidgetRef ref, Supplier s) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete supplier?'),
+        content: Text('Remove ${s.name} from your local records?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(supplierServiceProvider).deleteSupplier(s.id, s.name);
+    ref.invalidate(suppliersProvider);
+    if (context.mounted) context.go('/suppliers');
   }
 }

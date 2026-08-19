@@ -21,8 +21,13 @@ class ActivityLogService {
         );
   }
 
-  Future<List<ActivityLog>> getAll({String? actionFilter, String? search}) async {
-    var query = _db.select(_db.activityLogs)
+  Future<List<ActivityLog>> getAll({
+    String? actionFilter,
+    String? search,
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final query = _db.select(_db.activityLogs)
       ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
 
     final rows = await query.get();
@@ -30,6 +35,8 @@ class ActivityLogService {
       if (actionFilter != null && actionFilter != 'ALL' && r.action != actionFilter) {
         return false;
       }
+      if (from != null && r.createdAt.isBefore(from)) return false;
+      if (to != null && r.createdAt.isAfter(to)) return false;
       if (search != null && search.isNotEmpty) {
         final q = search.toLowerCase();
         return r.details.toLowerCase().contains(q);
