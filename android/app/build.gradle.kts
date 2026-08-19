@@ -61,11 +61,13 @@ listOf("assembleDebug", "assembleRelease").forEach { taskName ->
             val isRelease = taskName.contains("Release")
             val apkFileName = if (isRelease) "app-release.apk" else "app-debug.apk"
             val sourceApk = layout.buildDirectory.file("outputs/flutter-apk/$apkFileName").get().asFile
-            if (sourceApk.exists()) {
-                val destDir = flutterApkOutputDir.asFile
-                destDir.mkdirs()
-                sourceApk.copyTo(destDir.resolve(apkFileName), overwrite = true)
+            if (!sourceApk.exists()) {
+                logger.warn("Expected APK not found at ${sourceApk.absolutePath}; skipping copy.")
+                return@doLast
             }
+            val destDir = flutterApkOutputDir.asFile
+            destDir.mkdirs()
+            sourceApk.copyTo(destDir.resolve(apkFileName), overwrite = true)
         }
     }
 }

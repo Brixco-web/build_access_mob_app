@@ -1,6 +1,5 @@
 import 'package:build_access_mob_app/core/services/order_service.dart';
 import 'package:build_access_mob_app/core/services/sales_service.dart';
-import 'package:build_access_mob_app/core/services/supplier_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'helpers/test_database.dart';

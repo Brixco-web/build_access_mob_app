@@ -215,14 +215,14 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Item name')),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: categoryId.isEmpty ? null : categoryId,
+              initialValue: categoryId.isEmpty ? null : categoryId,
               decoration: const InputDecoration(labelText: 'Category'),
               items: categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
               onChanged: (v) => setModal(() => categoryId = v ?? categoryId),
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String?>(
-              value: supplierId,
+              initialValue: supplierId,
               decoration: const InputDecoration(labelText: 'Supplier (optional)'),
               items: [
                 const DropdownMenuItem(value: null, child: Text('None')),
@@ -319,7 +319,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             NumberField(label: 'Unit cost', value: cost, onChanged: (v) => cost = v),
             NumberField(label: 'Selling price', value: sell, onChanged: (v) => sell = v),
             DropdownButtonFormField<String>(
-              value: supplierId,
+              initialValue: supplierId,
               decoration: const InputDecoration(labelText: 'Supplier'),
               items: suppliers.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))).toList(),
               onChanged: (v) => setModal(() => supplierId = v ?? supplierId),

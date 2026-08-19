@@ -172,7 +172,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                     child: Column(
                       children: [
                         DropdownButtonFormField<String>(
-                          value: line.itemId,
+                          initialValue: line.itemId,
                           decoration: const InputDecoration(labelText: 'Item'),
                           items: items
                               .map((i) => DropdownMenuItem(
@@ -242,7 +242,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                 ),
               if (discountType == DiscountType.freeItem) ...[
                 DropdownButtonFormField<String>(
-                  value: freeItemId,
+                  initialValue: freeItemId,
                   decoration: const InputDecoration(labelText: 'Free item'),
                   items: items
                       .map((i) => DropdownMenuItem(value: i.id, child: Text(i.name)))

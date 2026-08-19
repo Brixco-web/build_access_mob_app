@@ -120,7 +120,7 @@ class OrdersScreen extends ConsumerWidget {
           children: [
             TextField(controller: orderNumCtrl, decoration: const InputDecoration(labelText: 'Order number')),
             DropdownButtonFormField<String>(
-              value: supplierId,
+              initialValue: supplierId,
               decoration: const InputDecoration(labelText: 'Supplier'),
               items: suppliers
                   .map((s) => DropdownMenuItem(value: s.id as String, child: Text(s.name as String)))
@@ -135,7 +135,7 @@ class OrdersScreen extends ConsumerWidget {
                   Expanded(
                     flex: 3,
                     child: DropdownButtonFormField<String>(
-                      value: line.itemId,
+                      initialValue: line.itemId,
                       decoration: const InputDecoration(labelText: 'Item'),
                       items: items
                           .map((i) => DropdownMenuItem(value: i.id as String, child: Text(i.name as String)))

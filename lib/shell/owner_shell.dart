@@ -27,7 +27,6 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
 
   static const _moreItems = [
     _Tab('/orders', 'Orders', LucideIcons.packagePlus),
-    _Tab('/reports', 'Reports', LucideIcons.fileBarChart2),
     _Tab('/activity-logs', 'Activity Logs', LucideIcons.clipboardList),
     _Tab('/suppliers', 'Suppliers', LucideIcons.truck),
     _Tab('/settings', 'Settings', LucideIcons.settings),

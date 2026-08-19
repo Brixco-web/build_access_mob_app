@@ -58,6 +58,30 @@ class ReportBreakdownRow {
   final double salesValue;
 }
 
+class CustomReport {
+  CustomReport({
+    required this.periodLabel,
+    required this.totalRevenue,
+    required this.totalCommission,
+    required this.totalStockReceived,
+    required this.inventoryValue,
+    required this.netCashFlow,
+    required this.totalOutstandingDebt,
+    required this.suppliersWithDebt,
+    required this.breakdown,
+  });
+
+  final String periodLabel;
+  final double totalRevenue;
+  final double totalCommission;
+  final double totalStockReceived;
+  final double inventoryValue;
+  final double netCashFlow;
+  final double totalOutstandingDebt;
+  final List<({String name, double amountOwed})> suppliersWithDebt;
+  final List<ReportBreakdownRow> breakdown;
+}
+
 class MonthlyReport {
   MonthlyReport({
     required this.totalStockReceivedQty,
@@ -211,21 +235,90 @@ class FinancialService {
   }
 
   Future<MonthlyReport> getMonthlyReport(int year, int month) async {
-    final (start, end) = _monthRange(year, month);
-    final items = await _inventory.getItems();
+    final report = await getCustomReport(month: month, year: year);
+    var totalStockQty = 0;
+    var totalSalesQty = 0;
+    for (final row in report.breakdown) {
+      totalStockQty += row.stockInQty;
+      totalSalesQty += row.soldQty;
+    }
+    return MonthlyReport(
+      totalStockReceivedQty: totalStockQty,
+      totalStockReceivedValue: report.totalStockReceived,
+      totalSalesQty: totalSalesQty,
+      totalSalesValue: report.totalRevenue,
+      netInventoryChange: report.totalStockReceived - report.totalRevenue,
+      breakdown: report.breakdown,
+    );
+  }
 
-    final allStockInItems = await _db.select(_db.stockInItems).get();
+  Future<CustomReport> getCustomReport({
+    int? month,
+    int? year,
+    DateTime? startDate,
+    DateTime? endDate,
+    bool allTime = false,
+  }) async {
+    final now = DateTime.now();
+    late DateTime? rangeStart;
+    late DateTime? rangeEnd;
+    late String periodLabel;
+
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+
+    if (allTime) {
+      rangeStart = null;
+      rangeEnd = null;
+      periodLabel = 'All-Time';
+    } else if (startDate != null && endDate != null) {
+      rangeStart = DateTime(startDate.year, startDate.month, startDate.day);
+      rangeEnd = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59, 999);
+      periodLabel =
+          '${rangeStart.day.toString().padLeft(2, '0')} ${_shortMonth(rangeStart.month)} ${rangeStart.year} - '
+          '${rangeEnd.day.toString().padLeft(2, '0')} ${_shortMonth(rangeEnd.month)} ${rangeEnd.year}';
+    } else if (month != null && year != null) {
+      final (start, end) = _monthRange(year, month);
+      rangeStart = start;
+      rangeEnd = end.subtract(const Duration(microseconds: 1));
+      periodLabel = '${monthNames[month - 1]} $year';
+    } else {
+      final m = now.month;
+      final y = now.year;
+      final (start, end) = _monthRange(y, m);
+      rangeStart = start;
+      rangeEnd = end.subtract(const Duration(microseconds: 1));
+      periodLabel = '${monthNames[m - 1]} $y';
+    }
+
+    bool inRange(DateTime date) {
+      if (rangeStart == null || rangeEnd == null) return true;
+      return !date.isBefore(rangeStart) && !date.isAfter(rangeEnd);
+    }
+
     final allStockIns = await _db.select(_db.stockIns).get();
-    final stockInById = {for (final s in allStockIns) s.id: s};
+    final stockIns = allTime ? allStockIns : allStockIns.where((s) => inRange(s.receivedDate)).toList();
+    final totalStockReceived = stockIns.fold(0.0, (s, r) => s + r.totalCost);
 
     final allSales = await _db.select(_db.stockOuts).get();
-    final sales = allSales.where((s) => _inRange(s.dispatchedAt, start, end)).toList();
+    final sales = allTime ? allSales : allSales.where((s) => inRange(s.dispatchedAt)).toList();
+    final totalRevenue = sales.fold(0.0, (s, r) => s + r.totalAmount);
+    final totalCommission = sales.fold(0.0, (s, r) => s + r.profit);
 
+    final inventoryValue = await _inventory.getTotalStockValue();
+    final debtRows = await _suppliers.getSuppliersWithDebt();
+    final totalOutstandingDebt = debtRows.fold(0.0, (s, r) => s + r.amountOwed);
+    final suppliersWithDebt = debtRows
+        .where((s) => s.amountOwed > 0)
+        .map((s) => (name: s.name, amountOwed: s.amountOwed))
+        .toList();
+
+    final items = await _inventory.getItems();
+    final allStockInItems = await _db.select(_db.stockInItems).get();
+    final stockInById = {for (final s in allStockIns) s.id: s};
     final breakdown = <ReportBreakdownRow>[];
-    var totalStockQty = 0;
-    var totalStockValue = 0.0;
-    var totalSalesQty = 0;
-    var totalSalesValue = 0.0;
 
     for (final item in items) {
       var siQty = 0;
@@ -234,7 +327,7 @@ class FinancialService {
         if (line.itemId != item.id) continue;
         final stockIn = stockInById[line.stockInId];
         if (stockIn == null) continue;
-        if (!_inRange(stockIn.receivedDate, start, end)) continue;
+        if (!allTime && !inRange(stockIn.receivedDate)) continue;
         siQty += line.quantity;
         siVal += line.totalCost;
       }
@@ -257,21 +350,24 @@ class FinancialService {
           salesValue: soldVal,
         ));
       }
-
-      totalStockQty += siQty;
-      totalStockValue += siVal;
-      totalSalesQty += soldQty;
-      totalSalesValue += soldVal;
     }
 
-    return MonthlyReport(
-      totalStockReceivedQty: totalStockQty,
-      totalStockReceivedValue: totalStockValue,
-      totalSalesQty: totalSalesQty,
-      totalSalesValue: totalSalesValue,
-      netInventoryChange: totalStockValue - totalSalesValue,
+    return CustomReport(
+      periodLabel: periodLabel,
+      totalRevenue: totalRevenue,
+      totalCommission: totalCommission,
+      totalStockReceived: totalStockReceived,
+      inventoryValue: inventoryValue,
+      netCashFlow: totalRevenue - totalStockReceived,
+      totalOutstandingDebt: totalOutstandingDebt,
+      suppliersWithDebt: suppliersWithDebt,
       breakdown: breakdown,
     );
+  }
+
+  String _shortMonth(int month) {
+    const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return names[month - 1];
   }
 
   Future<DashboardData> getDashboard() async {
