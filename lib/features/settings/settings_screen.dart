@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/theme_provider.dart';
 import '../../shared/widgets/apex_card.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -36,13 +37,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
+    final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         Text('Settings', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
-        const Text('Owner device settings — no staff management on mobile',
-            style: TextStyle(color: Color(0xFF64748B), fontSize: 13)),
+        Text(
+          'Owner device settings — no staff management on mobile',
+          style: TextStyle(color: muted, fontSize: 13),
+        ),
+        const SizedBox(height: 16),
+        ApexCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Appearance', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Dark mode'),
+                subtitle: const Text('Easier on the eyes in low light'),
+                value: isDark,
+                onChanged: (enabled) {
+                  ref.read(themeModeProvider.notifier).setDarkMode(enabled);
+                },
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 16),
         ApexCard(
           child: Column(
@@ -84,12 +109,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ApexCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text('About', style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 8),
-              Text('Apex Building Accessories — Offline Owner App'),
-              Text('All data is stored locally on this device only.',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+            children: [
+              const Text('About', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              const Text('Apex Building Accessories — Offline Owner App'),
+              Text(
+                'All data is stored locally on this device only.',
+                style: TextStyle(fontSize: 12, color: muted),
+              ),
             ],
           ),
         ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/providers/database_provider.dart';
+import '../core/providers/theme_provider.dart';
 import '../core/theme/app_theme.dart';
 import '../router/app_router.dart';
 
@@ -12,11 +13,14 @@ class ApexApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final init = ref.watch(databaseInitProvider);
     final router = ref.watch(routerProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return init.when(
       loading: () => MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: themeMode,
         home: const Scaffold(body: Center(child: CircularProgressIndicator())),
       ),
       error: (e, _) => MaterialApp(
@@ -26,6 +30,8 @@ class ApexApp extends ConsumerWidget {
         title: 'Apex Building Accessories',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: themeMode,
         routerConfig: router,
       ),
     );

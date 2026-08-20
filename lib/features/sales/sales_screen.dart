@@ -323,70 +323,119 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
     final shopName = ref.read(shopNameProvider).value ?? 'Apex Building Accessories';
     showModalBottomSheet(
       context: context,
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.check_circle, color: AppColors.success, size: 48),
-            const SizedBox(height: 12),
-            const Text('Sale recorded successfully', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            Text('Receipt ${result.saleReference}', style: const TextStyle(color: AppColors.textSecondary)),
-            const SizedBox(height: 20),
+      isDismissible: false,
+      enableDrag: false,
+      builder: (ctx) => _PostSaleSheet(
+        result: result,
+        customer: customer,
+        date: date,
+        discountType: discountType,
+        moneyDiscount: moneyDiscount,
+        shopName: shopName,
+      ),
+    );
+  }
+}
+
+class _PostSaleSheet extends StatefulWidget {
+  const _PostSaleSheet({
+    required this.result,
+    required this.customer,
+    required this.date,
+    required this.discountType,
+    required this.moneyDiscount,
+    required this.shopName,
+  });
+
+  final SaleResult result;
+  final String customer;
+  final DateTime date;
+  final DiscountType discountType;
+  final double moneyDiscount;
+  final String shopName;
+
+  @override
+  State<_PostSaleSheet> createState() => _PostSaleSheetState();
+}
+
+class _PostSaleSheetState extends State<_PostSaleSheet> {
+  bool _acknowledged = false;
+
+  ReceiptData get _receipt => ReceiptData(
+        receiptNo: widget.result.saleReference,
+        customerName: widget.customer.isEmpty ? 'Walk-in customer' : widget.customer,
+        dispatchedAt: widget.date,
+        shopName: widget.shopName,
+        items: widget.result.lines
+            .map((l) => ReceiptLine(
+                  name: l.itemName,
+                  quantity: l.quantity,
+                  unit: l.unit,
+                  sellingPrice: l.sellingPrice,
+                ))
+            .toList(),
+        totalAmount: widget.result.totalAmount,
+        subtotal: widget.discountType == DiscountType.money
+            ? widget.result.totalAmount + widget.moneyDiscount
+            : null,
+        discountNote: widget.discountType == DiscountType.money
+            ? 'Discount: -${CurrencyFormatter.formatPdf(widget.moneyDiscount)}'
+            : widget.discountType == DiscountType.freeItem
+                ? 'Includes free item'
+                : null,
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.check_circle, color: AppColors.success, size: 48),
+          const SizedBox(height: 12),
+          const Text(
+            'Sale recorded successfully',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          Text(
+            'Receipt ${widget.result.saleReference}',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+          ),
+          const SizedBox(height: 20),
+          if (!_acknowledged) ...[
+            Text(
+              'Tap Done to confirm, then you can share or print the receipt.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () => setState(() => _acknowledged = true),
+              child: const Text('Done'),
+            ),
+          ] else ...[
             FilledButton.icon(
-              onPressed: () async {
-                final receipt = ReceiptData(
-                  receiptNo: result.saleReference,
-                  customerName: customer.isEmpty ? 'Walk-in customer' : customer,
-                  dispatchedAt: date,
-                  shopName: shopName,
-                  items: result.lines
-                      .map((l) => ReceiptLine(
-                            name: l.itemName,
-                            quantity: l.quantity,
-                            unit: l.unit,
-                            sellingPrice: l.sellingPrice,
-                          ))
-                      .toList(),
-                  totalAmount: result.totalAmount,
-                  subtotal: discountType == DiscountType.money ? result.totalAmount + moneyDiscount : null,
-                  discountNote: discountType == DiscountType.money
-                      ? 'Discount: -${CurrencyFormatter.formatPdf(moneyDiscount)}'
-                      : discountType == DiscountType.freeItem
-                          ? 'Includes free item'
-                          : null,
-                );
-                await ReceiptPdfService.shareReceipt(receipt);
-              },
+              onPressed: () => ReceiptPdfService.shareReceipt(_receipt),
               icon: const Icon(Icons.share),
               label: const Text('Share via WhatsApp'),
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
-              onPressed: () async {
-                final receipt = ReceiptData(
-                  receiptNo: result.saleReference,
-                  customerName: customer.isEmpty ? 'Walk-in customer' : customer,
-                  dispatchedAt: date,
-                  shopName: shopName,
-                  items: result.lines
-                      .map((l) => ReceiptLine(
-                            name: l.itemName,
-                            quantity: l.quantity,
-                            unit: l.unit,
-                            sellingPrice: l.sellingPrice,
-                          ))
-                      .toList(),
-                  totalAmount: result.totalAmount,
-                );
-                await ReceiptPdfService.printReceipt(receipt);
-              },
+              onPressed: () => ReceiptPdfService.printReceipt(_receipt),
               icon: const Icon(Icons.print),
               label: const Text('Print receipt'),
             ),
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Done')),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

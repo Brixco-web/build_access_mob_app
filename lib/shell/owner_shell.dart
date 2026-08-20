@@ -41,6 +41,8 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
     final moreActive = _moreItems.any((t) => _isActive(t.path));
     final shopName = ref.watch(shopNameProvider).value ?? 'Apex Building Accessories';
     final titleParts = _splitShopTitle(shopName);
+    final theme = Theme.of(context);
+    final surface = theme.cardTheme.color ?? theme.colorScheme.surface;
 
     return Scaffold(
       appBar: AppBar(
@@ -68,7 +70,7 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
               margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: surface,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12)],
               ),
@@ -93,9 +95,9 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
             margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.95),
+              color: surface.withValues(alpha: 0.95),
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: theme.dividerColor),
               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 16, offset: const Offset(0, -4))],
             ),
             child: Row(
